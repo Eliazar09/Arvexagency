@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { LocalClock } from '@/components/primitives/LocalClock';
+import { SITE } from '@/config/site';
 
 const serviceLinks = [
   { href: '/servicos/sites', label: 'Sites' },
@@ -13,7 +14,7 @@ const agencyLinks = [
   { href: '/contato#orcamento', label: 'Solicitar orçamento' },
 ];
 
-const WA_URL = 'https://wa.me/5595981075842';
+const WA_URL = SITE.contact.waBase;
 
 export function Footer() {
   const year = new Date().getFullYear();
@@ -29,7 +30,7 @@ export function Footer() {
               Arvex<span className="text-red">.</span>
             </Link>
             <p className="font-sans text-sm text-paper-soft leading-relaxed max-w-[28ch]">
-              Boutique de tecnologia e criação. Sites, sistemas e automação que geram resultado.
+              Creative studio de tecnologia. Sites, sistemas e automação que geram resultado.
             </p>
           </div>
 
@@ -125,11 +126,17 @@ export function Footer() {
 
         {/* Bottom bar */}
         <div className="border-t border-white/[0.06] pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-6 flex-wrap">
             <span className="font-mono text-xs text-paper-soft/50 uppercase tracking-wider">
               © {year} Arvex Agency
             </span>
             <LocalClock className="font-mono text-xs text-paper-soft/40 uppercase tracking-wider" />
+            <Link
+              href="/politica-de-privacidade"
+              className="font-mono text-xs text-paper-soft/40 hover:text-paper-soft/70 uppercase tracking-wider transition-colors"
+            >
+              Privacidade
+            </Link>
           </div>
           <span className="font-mono text-xs text-paper-soft/30 uppercase tracking-wider">
             Boa Vista–RR, Brasil

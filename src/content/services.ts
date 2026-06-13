@@ -29,7 +29,7 @@ export const services: Service[] = [
     tagline: 'Qualquer tipo de site, feito do zero com qualidade.',
     summary: 'Do briefing ao deploy: UX, design, código e performance sob um único teto.',
     description:
-      'Criamos qualquer tipo de site — institucional, portfólio, landing page, blog, site de serviços. Cada projeto começa do zero, sem template. O resultado: um site rápido, bonito e que representa a sua marca de verdade.',
+      'Criamos qualquer tipo de site para empresas em Boa Vista, Roraima e em todo o Brasil — institucional, portfólio, landing page. Cada projeto começa do zero, sem template. O resultado: um site rápido, bonito e que representa a sua marca de verdade.',
     deliverables: [
       'Site institucional ou landing page',
       'Design personalizado (sem templates)',
@@ -102,7 +102,7 @@ export const services: Service[] = [
     tagline: 'Sistemas de agendamento, portais e painéis sob medida.',
     summary: 'Sistemas personalizados que resolvem problemas reais do seu negócio.',
     description:
-      'Desenvolvemos sistemas web personalizados: sistema de agendamento online, painel administrativo, portal do cliente, cadastro de produtos, controle de estoque simples. Se você tem um processo manual que poderia ser digital, a gente constrói pra você.',
+      'Desenvolvemos sistemas web personalizados para empresas em Boa Vista–RR e em todo o Brasil: agendamento online, painel administrativo, portal do cliente. Se você tem um processo manual que poderia ser digital, a gente constrói pra você.',
     deliverables: [
       'Sistema de agendamento online',
       'Painel administrativo',
@@ -171,7 +171,7 @@ export const services: Service[] = [
     tagline: 'WhatsApp, fluxos e integrações que trabalham por você.',
     summary: 'Automatize atendimento, notificações e processos repetitivos.',
     description:
-      'Configuramos automações para o seu negócio: atendimento automático no WhatsApp, confirmação de agendamento por mensagem, notificações automáticas, integração entre sistemas e fluxos que eliminam tarefas manuais do seu dia a dia.',
+      'Configuramos automações para o seu negócio em Boa Vista–RR e em todo o Brasil: atendimento automático no WhatsApp, confirmação de agendamento, notificações automáticas e fluxos que eliminam tarefas manuais do seu dia a dia.',
     deliverables: [
       'Atendimento automático no WhatsApp',
       'Confirmação e lembrete de agendamentos',

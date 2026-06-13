@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SITE } from '@/config/site';
 
 const navLinks = [
   { href: '/servicos', label: 'Serviços' },
@@ -103,7 +104,7 @@ export function Nav() {
           {/* ── CTA + WhatsApp (direita) ── */}
           <div className="hidden md:flex items-center gap-2 ml-6 shrink-0">
             <a
-              href="https://wa.me/5595981075842"
+              href={SITE.contact.waBase}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="WhatsApp"

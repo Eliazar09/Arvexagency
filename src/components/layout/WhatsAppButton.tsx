@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { waLink } from '@/config/site';
 
-const HREF = 'https://wa.me/5595981075842?text=' + encodeURIComponent('Olá! Vim pelo site e quero saber mais sobre os serviços da Arvex.');
+const HREF = waLink('Olá! Vim pelo site e quero saber mais sobre os serviços da Arvex.');
 
 export function WhatsAppButton() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const check = () => setVisible(window.scrollY > 500);
+    const check = () => setVisible(window.scrollY > 250);
     check();
     window.addEventListener('scroll', check, { passive: true });
     return () => window.removeEventListener('scroll', check);

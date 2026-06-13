@@ -61,8 +61,8 @@ export function Process() {
                     className="font-display font-light leading-none select-none"
                     style={{
                       fontSize: 'clamp(6rem, 16vw, 14rem)',
-                      WebkitTextStroke: '1px rgb(var(--paper) / 0.08)',
-                      color: 'transparent',
+                      WebkitTextStroke: '1.5px rgb(var(--paper) / 0.32)',
+                      color: 'rgb(var(--paper) / 0.04)',
                     }}
                     aria-hidden="true"
                   >

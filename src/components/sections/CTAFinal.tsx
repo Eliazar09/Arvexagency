@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { MagneticLink } from '@/components/primitives/MagneticLink';
 import { Reveal } from '@/components/primitives/RevealText';
+import { waLink } from '@/config/site';
 
 export function CTAFinal() {
   return (
@@ -64,7 +65,7 @@ export function CTAFinal() {
             </p>
             <span className="hidden sm:block text-paper-soft/20">·</span>
             <a
-              href="https://wa.me/5595981075842?text=Olá!%20Quero%20começar%20um%20projeto%20com%20a%20Arvex."
+              href={waLink('Olá! Quero começar um projeto com a Arvex.')}
               target="_blank"
               rel="noopener noreferrer"
               className="font-mono text-xs uppercase tracking-widest text-[#25d366] hover:text-[#1fad55] transition-colors flex items-center gap-2"

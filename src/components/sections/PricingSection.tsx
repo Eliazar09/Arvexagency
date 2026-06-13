@@ -8,57 +8,60 @@ import { CheckCheck, Wrench, Zap, LayoutDashboard } from 'lucide-react';
 
 const plans = [
   {
-    id: 'manutencao',
-    name: 'Manutenção de Site',
-    tagline: 'Já tem site e precisa corrigir, atualizar ou melhorar algo? A gente cuida.',
-    price: 250,
-    period: '/mês',
-    cta: 'Contratar manutenção',
+    id: 'landing-page',
+    name: 'Landing Page',
+    tagline: 'Uma página única e objetiva para apresentar seu negócio e captar clientes.',
+    price: 680,
+    period: '/projeto',
+    extra: 'manutenção R$150/mês',
+    cta: 'Quero minha landing page',
     popular: false,
     Icon: Wrench,
     features: [
-      'Correções e ajustes no site existente',
-      'Backup semanal automático',
-      'Atualizações de segurança',
-      'Monitoramento de uptime 24/7',
-      '1 alteração de conteúdo por mês',
+      '1 página completa (do zero)',
+      'Design responsivo mobile + desktop',
+      'Formulário ou botão de WhatsApp',
+      '1 mês de manutenção grátis incluso',
+      'Garantia de 30 dias para corrigir erros',
       'Suporte via WhatsApp',
     ],
   },
   {
-    id: 'automacao',
-    name: 'Automação',
-    tagline: 'WhatsApp e fluxos inteligentes que trabalham enquanto você dorme.',
-    price: 499,
-    period: '/mês',
-    cta: 'Automatizar agora',
+    id: 'site-institucional',
+    name: 'Site Institucional',
+    tagline: 'Site com múltiplas páginas — home, sobre, serviços, contato e mais.',
+    price: 1200,
+    period: '/projeto',
+    extra: 'manutenção R$150/mês',
+    cta: 'Quero meu site',
     popular: true,
     Icon: Zap,
     features: [
-      'Atendimento automático no WhatsApp',
-      'Fluxos de mensagens personalizados',
-      'Confirmação de agendamentos',
-      'Notificações automáticas',
-      'Integração com seu sistema atual',
-      'Relatório mensal de resultados',
+      'Múltiplas páginas (home, sobre, serviços…)',
+      'Design responsivo mobile + desktop',
+      'Blog ou seção de novidades',
+      '1 mês de manutenção grátis incluso',
+      'Garantia de 30 dias para corrigir erros',
+      'Suporte via WhatsApp',
     ],
   },
   {
-    id: 'automacao-crm',
-    name: 'Automação + CRM',
-    tagline: 'Automação completa com painel de controle e gestão de clientes integrados.',
-    price: 699,
-    period: '/mês',
+    id: 'site-dashboard',
+    name: 'Site + Dashboard',
+    tagline: 'Site institucional com painel para gerir produtos, estoque e cadastros.',
+    price: 1680,
+    period: '/projeto',
+    extra: 'manutenção R$250/mês',
     cta: 'Quero o completo',
     popular: false,
     Icon: LayoutDashboard,
     features: [
-      'Tudo do plano Automação',
-      'CRM integrado ao WhatsApp',
-      'Dashboard de métricas em tempo real',
-      'Gestão de leads e funil de vendas',
-      'Relatórios avançados mensais',
-      'Onboarding e treinamento incluso',
+      'Tudo do Site Institucional',
+      'Painel admin para gerir produtos',
+      'Cadastro, edição e remoção de itens',
+      'Controle de estoque e anotações',
+      'Banco de dados seguro incluso',
+      'Garantia de 30 dias para corrigir erros',
     ],
   },
 ];
@@ -119,9 +122,14 @@ function PlanCard({ plan, index }: { plan: typeof plans[0]; index: number }) {
               />
             </span>
           </div>
-          <span className="font-mono text-xs text-paper-soft/40 tracking-widest">
+            <span className="font-mono text-xs text-paper-soft/40 tracking-widest">
             {plan.period}
           </span>
+          {'extra' in plan && (
+            <p className="font-mono text-[9px] uppercase tracking-widest text-paper-soft/30 mt-1">
+              {(plan as typeof plans[0]).extra}
+            </p>
+          )}
         </div>
 
         <p className="font-sans text-sm text-paper-dim leading-relaxed mt-4 mb-8">
@@ -239,8 +247,8 @@ export function PricingSection() {
               Garantia de satisfação
             </p>
             <p className="font-sans text-sm text-paper-dim leading-relaxed">
-              Se não gostar do design nas primeiras 48h, devolvemos 100% da entrada — sem burocracia.
-              Trabalhamos até você ficar satisfeito.
+              30 dias de garantia após a entrega — qualquer erro no site a gente resolve sem custo.
+              Trabalhamos até você ficar 100% satisfeito.
             </p>
           </div>
           <div className="shrink-0 text-right hidden sm:block">
@@ -259,7 +267,7 @@ export function PricingSection() {
           <div className="flex items-center gap-2">
           </div>
           <p className="font-mono text-[10px] text-paper-soft/25 tracking-wide text-center sm:text-right">
-            Sistemas sob consulta · Parcelamento disponível · 50% entrada + 50% entrega
+            Sistemas Web & Automação sob consulta · Sem domínio incluso · 50% entrada + 50% na entrega
           </p>
         </motion.div>
 

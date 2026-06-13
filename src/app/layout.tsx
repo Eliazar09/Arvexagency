@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { Fraunces, Manrope, JetBrains_Mono } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/react';
+import { SITE } from '@/config/site';
 import '@/styles/globals.css';
 
 const fraunces = Fraunces({
@@ -72,21 +74,21 @@ export const metadata: Metadata = {
 const schemaOrg = {
   '@context': 'https://schema.org',
   '@type': 'LocalBusiness',
-  name: 'Arvex Agency',
-  description: 'Boutique de tecnologia em Boa Vista, Roraima. Sites profissionais, automação de WhatsApp e sistemas web.',
-  url: 'https://www.arvexagency.online',
-  telephone: '+55-95-9-8107-5842',
-  email: 'arvexagency@outlook.com',
+  name: SITE.name,
+  description: 'Studio de tecnologia em Boa Vista, Roraima. Sites profissionais, automação de WhatsApp e sistemas web.',
+  url: SITE.url,
+  telephone: SITE.contact.phone,
+  email: SITE.contact.email,
   address: {
     '@type': 'PostalAddress',
-    addressLocality: 'Boa Vista',
-    addressRegion: 'RR',
-    addressCountry: 'BR',
+    addressLocality: SITE.location.city,
+    addressRegion: SITE.location.region,
+    addressCountry: SITE.location.country,
   },
   geo: {
     '@type': 'GeoCoordinates',
-    latitude: 2.8235,
-    longitude: -60.6758,
+    latitude: SITE.location.lat,
+    longitude: SITE.location.lng,
   },
   openingHoursSpecification: [
     {
@@ -129,6 +131,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Pular para conteúdo
         </a>
         {children}
+        <Analytics />
       </body>
     </html>
   );

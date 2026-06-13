@@ -1,6 +1,7 @@
 import React from 'react';
+import type { FormData } from '@/lib/contact-schema';
 
-export const PdfTemplate = React.forwardRef<HTMLDivElement, { data: any }>(({ data }, ref) => {
+export const PdfTemplate = React.forwardRef<HTMLDivElement, { data: FormData }>(({ data }, ref) => {
   return (
     <div
       ref={ref}
@@ -83,7 +84,7 @@ export const PdfTemplate = React.forwardRef<HTMLDivElement, { data: any }>(({ da
       
       <div style={{ textAlign: 'center', marginTop: '50px' }}>
         <p style={{ fontSize: '10px', color: '#444', letterSpacing: '2px', textTransform: 'uppercase', margin: 0 }}>
-          ARVEXAGENCY.ONLINE • BOUTIQUE DE TECNOLOGIA
+          ARVEXAGENCY.ONLINE • CREATIVE STUDIO
         </p>
       </div>
     </div>

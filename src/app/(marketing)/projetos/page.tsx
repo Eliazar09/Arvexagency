@@ -5,10 +5,9 @@ import { motion, AnimatePresence, LayoutGroup } from 'motion/react';
 import { Reveal } from '@/components/primitives/RevealText';
 import { ProjectCard } from '@/components/primitives/ProjectCard';
 import { projects, projectCategories } from '@/content/projects';
-import type { ProjectCategory } from '@/content/projects';
 import { cn } from '@/lib/utils';
 
-type Filter = 'Todos' | ProjectCategory;
+type Filter = typeof projectCategories[number];
 
 export default function ProjetosPage() {
   const [active, setActive] = useState<Filter>('Todos');
@@ -23,12 +22,17 @@ export default function ProjetosPage() {
       <section className="min-h-[45vh] flex items-end border-b border-white/[0.06]">
         <div className="container pb-16 pt-[120px]">
           <Reveal>
-            <p className="section-label mb-6">PROJETOS</p>
+            <p className="section-label mb-6">PROJETOS / WORK</p>
           </Reveal>
           <Reveal delay={0.1}>
             <h1 className="font-display font-light leading-tight" style={{ fontSize: 'var(--fs-h1)' }}>
               Trabalho selecionado.
             </h1>
+          </Reveal>
+          <Reveal delay={0.18}>
+            <p className="font-mono text-xs text-paper-soft/40 uppercase tracking-widest mt-4">
+              Selected work — Portfolio
+            </p>
           </Reveal>
         </div>
       </section>
@@ -41,7 +45,7 @@ export default function ProjetosPage() {
             {projectCategories.map((cat) => (
               <button
                 key={cat}
-                onClick={() => setActive(cat as Filter)}
+                onClick={() => setActive(cat)}
                 className={cn(
                   'font-mono text-xs uppercase tracking-widest px-4 py-2 border transition-all duration-300',
                   active === cat

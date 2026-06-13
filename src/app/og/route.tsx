@@ -6,7 +6,7 @@ export const runtime = 'edge';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const title = searchParams.get('title') ?? 'Sites, Sistemas e Marcas que Vendem';
-  const subtitle = searchParams.get('subtitle') ?? 'Boutique de tecnologia e criação — Boa Vista, BR';
+  const subtitle = searchParams.get('subtitle') ?? 'Creative Studio de tecnologia e criação — Boa Vista, BR';
 
   return new ImageResponse(
     (

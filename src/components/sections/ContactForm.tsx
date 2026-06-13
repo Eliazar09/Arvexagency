@@ -2,44 +2,18 @@
 
 import { useState, forwardRef, useRef } from 'react';
 import { useForm, Controller, useWatch } from 'react-hook-form';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
+// html2canvas e jsPDF são importados dinamicamente em onSubmit (~270KB fora do bundle inicial)
 import { PdfTemplate } from './PdfTemplate';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { contactSchema, type FormData } from '@/lib/contact-schema';
+import { SITE } from '@/config/site';
+import { track } from '@vercel/analytics';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  CheckCircle, Loader2, Calendar, MessageSquare,
+  CheckCircle, Loader2, Calendar,
   Globe, Wrench, Zap, LayoutDashboard, Code2, HelpCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-// ─── Schema ──────────────────────────────────────────────────────────────────
-
-const schema = z.object({
-  name:           z.string().optional(),
-  email:          z.string().email('Email inválido'),
-  whatsappCode:   z.string(),
-  whatsappNumber: z.string().min(8, 'Número inválido'),
-  company:        z.string().optional(),
-  segment:        z.string().min(1,  'Selecione o segmento'),
-  hasSite:        z.enum(['sim', 'nao']),
-  currentSiteUrl: z.string().optional(),
-  service:        z.string().min(1,  'Selecione um serviço'),
-  goal:           z.string().min(1,  'Selecione um objetivo'),
-  timeline:       z.string().min(1,  'Selecione um prazo'),
-  message:        z.string().min(10, 'Conte mais sobre o projeto (mínimo 10 caracteres)'),
-  contactMethod:  z.enum(['mensagem', 'meet']),
-  meetDate:       z.string().optional(),
-  meetTime:       z.string().optional(),
-}).superRefine((data, ctx) => {
-  if (data.contactMethod === 'meet') {
-    if (!data.meetDate) ctx.addIssue({ code: 'custom', path: ['meetDate'], message: 'Selecione uma data' });
-    if (!data.meetTime) ctx.addIssue({ code: 'custom', path: ['meetTime'], message: 'Selecione um horário' });
-  }
-});
-
-type FormData = z.infer<typeof schema>;
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -48,7 +22,7 @@ const STEPS = [
   { id: 'empresa',   label: 'Empresa'      },
   { id: 'servico',   label: 'Serviço'      },
   { id: 'projeto',   label: 'Projeto'      },
-  { id: 'agenda',    label: 'Agendamento'  },
+  { id: 'agenda',    label: 'Envio'        },
 ];
 
 const SEGMENTS = [
@@ -64,12 +38,12 @@ const SEGMENTS = [
 ];
 
 const SERVICES = [
-  { id: 'manutencao',  label: 'Manutenção de Site',  price: 'R$ 250/mês', Icon: Wrench,          desc: 'Correções, atualizações e suporte no site existente'          },
-  { id: 'automacao',   label: 'Automação WhatsApp',  price: 'R$ 499/mês', Icon: Zap,             desc: 'Atendimento automático e fluxos inteligentes no WhatsApp'     },
-  { id: 'crm',         label: 'Automação + CRM',     price: 'R$ 699/mês', Icon: LayoutDashboard, desc: 'Automação completa com CRM, dashboard e gestão de clientes'   },
-  { id: 'site-novo',   label: 'Novo Site',           price: 'Sob consulta',Icon: Globe,          desc: 'Site profissional do zero, entregue em 1–5 dias úteis'        },
-  { id: 'sistema',     label: 'Sistema Web',         price: 'Sob consulta',Icon: Code2,          desc: 'Aplicação ou sistema sob medida para o seu negócio'           },
-  { id: 'outro',       label: 'Outro / Não sei',     price: 'Vamos ver',  Icon: HelpCircle,      desc: 'Me conta o que você precisa e encontramos a melhor solução'  },
+  { id: 'landing-page',       label: 'Landing Page',        price: 'R$ 680',      Icon: Globe,          desc: '1 página objetiva para apresentar seu negócio e captar clientes' },
+  { id: 'site-institucional', label: 'Site Institucional',  price: 'R$ 1.200',    Icon: Wrench,         desc: 'Site com múltiplas páginas — home, sobre, serviços, contato'     },
+  { id: 'site-dashboard',     label: 'Site + Dashboard',    price: 'R$ 1.680',    Icon: LayoutDashboard,desc: 'Site institucional com painel para gerir produtos e cadastros'     },
+  { id: 'sistema',            label: 'Sistema Web / CRM',   price: 'Sob consulta',Icon: Code2,          desc: 'Agendamento, CRM e sistemas sob medida para o seu negócio'        },
+  { id: 'automacao',          label: 'Automação WhatsApp',  price: 'Sob consulta',Icon: Zap,            desc: 'Atendimento automático e fluxos inteligentes no WhatsApp'         },
+  { id: 'outro',              label: 'Outro / Não sei',     price: 'Vamos ver',   Icon: HelpCircle,     desc: 'Me conta o que você precisa e encontramos a melhor solução'      },
 ];
 
 const GOALS = [
@@ -95,7 +69,7 @@ const STEP_FIELDS: Record<number, (keyof FormData)[]> = {
   1: ['segment', 'hasSite'],
   2: ['service'],
   3: ['goal', 'timeline', 'message'],
-  4: ['contactMethod'],
+  4: ['contactMethod', 'lgpdConsent'],
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -189,12 +163,13 @@ export function ContactForm() {
     getValues,
     formState: { errors },
   } = useForm<FormData>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(contactSchema),
     defaultValues: {
-      hasSite:       'nao',
-      contactMethod: 'mensagem',
-      whatsappCode:  '+55',
+      hasSite:        'nao',
+      contactMethod:  'mensagem',
+      whatsappCode:   '+55',
       whatsappNumber: '',
+      lgpdConsent:    false,
     },
   });
 
@@ -207,40 +182,69 @@ export function ContactForm() {
     if (!valid) return;
     setDir(next > step ? 1 : -1);
     setStep(next);
+    // Funil: registra avanço de etapa para identificar onde as pessoas desistem
+    if (next > step) {
+      track('form_step_avancou', { etapa: STEPS[next]?.id ?? String(next) });
+    }
   };
 
   const pdfRef = useRef<HTMLDivElement>(null);
+  const honeypotRef = useRef<HTMLInputElement>(null);
   const [pdfData, setPdfData] = useState<FormData | null>(null);
 
   const onSubmit = async (_data: FormData) => {
     setLoading(true);
-    
-    // 1. Prepare PDF Data and Wait for React to Render the Template
-    setPdfData(_data);
-    await new Promise((r) => setTimeout(r, 200)); // wait for DOM update
+    let pdfOk = false;
 
-    // 2. Generate PDF using html2canvas & jsPDF
-    if (pdfRef.current) {
+    try {
+      // ── Item 3: salva o lead via API antes de abrir o WhatsApp ─────────────
       try {
-        const canvas = await html2canvas(pdfRef.current, { 
-          scale: 2, 
-          useCORS: true, 
-          backgroundColor: '#0a0a0b' 
+        await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ..._data,
+            _hp: honeypotRef.current?.value ?? '',
+          }),
         });
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-        
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`Briefing_Arvex_${_data.name ? _data.name.replace(/\s+/g, '') : 'Projeto'}.pdf`);
-      } catch (err) {
-        console.error('Falha ao gerar o PDF', err);
+      } catch (apiErr) {
+        // API falhou — sem travar o usuário; WhatsApp é o fallback
+        console.warn('[ContactForm] API /contact indisponível:', apiErr);
       }
-    }
 
-    // 3. Build WhatsApp Text requesting the PDF attachment
-    const message = `*Novo Contato via Site* 🌐
+      // ── Prepara o template e aguarda render ──────────────────────────────────
+      setPdfData(_data);
+      await new Promise((r) => setTimeout(r, 200));
+
+      // ── Gera PDF (Item 2: fallback se falhar) ────────────────────────────────
+      if (pdfRef.current) {
+        try {
+          const html2canvas = (await import('html2canvas')).default;
+          const { jsPDF } = await import('jspdf');
+          const canvas = await html2canvas(pdfRef.current, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#0a0a0b',
+          });
+          const imgData = canvas.toDataURL('image/png');
+          const pdf = new jsPDF('p', 'mm', 'a4');
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+          pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+          pdf.save(`Briefing_Arvex_${_data.name ? _data.name.replace(/\s+/g, '') : 'Projeto'}.pdf`);
+          pdfOk = true;
+        } catch (pdfErr) {
+          console.error('[ContactForm] Falha ao gerar PDF:', pdfErr);
+          // Não trava — continua para o WhatsApp mesmo sem PDF
+        }
+      }
+
+      // ── Monta mensagem do WhatsApp ────────────────────────────────────────────
+      const pdfNote = pdfOk
+        ? '_💡 Olá, acabei de gerar meu briefing detalhado em PDF pelo seu site! Estou enviando o arquivo PDF em anexo logo abaixo para darmos andamento._ 👇'
+        : '_💡 Olá, vim pelo site da Arvex e gostaria de dar andamento ao meu projeto!_';
+
+      const message = `*Novo Contato via Site* 🌐
 
 *Nome:* ${_data.name || 'Não informado'}
 *WhatsApp:* ${_data.whatsappCode} ${_data.whatsappNumber}
@@ -248,17 +252,26 @@ export function ContactForm() {
 
 *Preferência de Retorno:* ${_data.contactMethod === 'meet' ? `Google Meet (${_data.meetDate} às ${_data.meetTime})` : 'Apenas Mensagem'}
 
-_💡 Olá, acabei de gerar meu briefing detalhado em PDF pelo seu site! Estou enviando o arquivo PDF em anexo logo abaixo para darmos andamento._ 👇`;
+${pdfNote}`;
 
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/5595981075842?text=${encodedMessage}`;
-    
-    // Pequena pausa para garantir o download do PDF antes de abrir a nova aba
-    await new Promise((r) => setTimeout(r, 500));
-    window.open(whatsappUrl, '_blank');
-    
-    setLoading(false);
-    setSubmitted(true);
+      await new Promise((r) => setTimeout(r, pdfOk ? 500 : 100));
+      window.open(`${SITE.contact.waBase}?text=${encodeURIComponent(message)}`, '_blank');
+      track('form_enviado', {
+        servico: _data.service,
+        metodo: _data.contactMethod,
+        pdf: pdfOk ? 'sim' : 'nao',
+      });
+      setSubmitted(true);
+    } catch (outerErr) {
+      // Item 2: garante que o usuário NUNCA fica preso
+      console.error('[ContactForm] Erro inesperado:', outerErr);
+      const basicMsg = `*Novo Contato via Site* 🌐\n*Nome:* ${_data.name || 'Não informado'}\n*WhatsApp:* ${_data.whatsappCode} ${_data.whatsappNumber}`;
+      window.open(`${SITE.contact.waBase}?text=${encodeURIComponent(basicMsg)}`, '_blank');
+      setSubmitted(true);
+    } finally {
+      // Item 2: loading SEMPRE é liberado, mesmo em caso de erro
+      setLoading(false);
+    }
   };
 
   // ── Success ──────────────────────────────────────────────────────────────────
@@ -664,7 +677,7 @@ _💡 Olá, acabei de gerar meu briefing detalhado em PDF pelo seu site! Estou e
             </motion.div>
           )}
 
-          {/* ── STEP 4: Agendamento ──────────────────────────────────────────── */}
+          {/* ── STEP 4: Envio ────────────────────────────────────────────────── */}
           {step === 4 && (
             <motion.div key="s4" custom={dir} variants={variants}
               initial="enter" animate="center" exit="exit"
@@ -672,122 +685,166 @@ _💡 Olá, acabei de gerar meu briefing detalhado em PDF pelo seu site! Estou e
               className="flex flex-col gap-8"
             >
               <div>
-                <p className="font-display text-xl font-light text-paper mb-1">Como prefere continuar?</p>
-                <p className="font-sans text-sm text-paper-soft/50">Escolha como quer receber o retorno.</p>
+                <p className="font-display text-xl font-light text-paper mb-1">Quase lá.</p>
+                <p className="font-sans text-sm text-paper-soft/50">
+                  Vamos te responder em até 24h com uma análise e proposta personalizada.
+                </p>
               </div>
 
-              <Controller control={control} name="contactMethod"
-                render={({ field }) => (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Só mensagem */}
-                    <button
-                      type="button"
-                      onClick={() => field.onChange('mensagem')}
-                      className={cn(
-                        'text-left p-5 border transition-all duration-200 flex flex-col gap-2',
-                        field.value === 'mensagem'
-                          ? 'border-red/60 bg-red/[0.06]'
-                          : 'border-white/[0.07] hover:border-white/15'
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <MessageSquare size={16} className={field.value === 'mensagem' ? 'text-red' : 'text-paper-soft/40'} />
-                        <span className="font-mono text-[11px] uppercase tracking-widest text-paper">
-                          Só enviar mensagem
-                        </span>
-                      </div>
-                      <p className="font-sans text-xs text-paper-dim leading-relaxed">
-                        Respondemos em até 24h com uma análise inicial e proposta.
-                      </p>
-                    </button>
-
-                    {/* Google Meet */}
-                    <button
-                      type="button"
-                      onClick={() => field.onChange('meet')}
-                      className={cn(
-                        'text-left p-5 border transition-all duration-200 flex flex-col gap-2',
-                        field.value === 'meet'
-                          ? 'border-red/60 bg-red/[0.06]'
-                          : 'border-white/[0.07] hover:border-white/15'
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Calendar size={16} className={field.value === 'meet' ? 'text-red' : 'text-paper-soft/40'} />
-                        <span className="font-mono text-[11px] uppercase tracking-widest text-paper">
-                          Agendar Google Meet
-                        </span>
-                      </div>
-                      <p className="font-sans text-xs text-paper-dim leading-relaxed">
-                        30 min de videochamada para entender o projeto e já sair com uma direção clara.
-                      </p>
-                    </button>
-                  </div>
-                )}
-              />
-
-              {/* Meet date/time picker */}
-              {contactMethod === 'meet' && (
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35 }}
-                  className="flex flex-col gap-6 border border-white/[0.06] p-5"
-                >
-                  <div className="flex flex-col gap-2">
-                    <Label>Data da reunião *</Label>
-                    <Controller control={control} name="meetDate"
-                      render={({ field }) => (
-                        <input
-                          type="date"
-                          min={getMinDate()}
-                          value={field.value ?? ''}
-                          onChange={field.onChange}
-                          className={cn(
-                            'w-full bg-transparent border-b py-3 font-sans text-base text-paper',
-                            'focus:outline-none transition-colors duration-300',
-                            '[color-scheme:dark]',
-                            errors.meetDate ? 'border-red/60' : 'border-white/15 focus:border-red'
-                          )}
-                        />
-                      )}
-                    />
-                    <FieldError message={errors.meetDate?.message} />
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    <Label>Horário *</Label>
-                    <Controller control={control} name="meetTime"
-                      render={({ field }) => (
-                        <div className="flex flex-wrap gap-2">
-                          {TIME_SLOTS.map((t) => (
-                            <button
-                              key={t}
-                              type="button"
-                              onClick={() => field.onChange(t)}
-                              className={cn(
-                                'px-4 py-2 font-mono text-[11px] uppercase tracking-widest border transition-all duration-200',
-                                field.value === t
-                                  ? 'border-red/60 bg-red/[0.08] text-paper'
-                                  : 'border-white/10 text-paper-soft/50 hover:border-white/20'
-                              )}
-                            >
-                              {t}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    />
-                    <FieldError message={errors.meetTime?.message} />
-                    <p className="font-mono text-[9px] text-paper-soft/30 tracking-wide">
-                      Horário de Boa Vista–RR (UTC–4) · Seg–Sex apenas
+              {/* Bloco opcional de videochamada */}
+              <div className="border border-white/[0.06] p-5 flex flex-col gap-5">
+                <div className="flex items-start gap-3">
+                  <Calendar size={15} className="text-red/70 mt-0.5 shrink-0" />
+                  <div className="flex flex-col gap-1">
+                    <p className="font-mono text-[11px] uppercase tracking-widest text-paper">
+                      Quer agendar uma videochamada também?
+                    </p>
+                    <p className="font-sans text-xs text-paper-dim leading-relaxed">
+                      30 min de Google Meet para entender o projeto, tirar dúvidas e já sair com uma direção clara — sem custo, sem compromisso.
                     </p>
                   </div>
-                </motion.div>
-              )}
+                </div>
+
+                <Controller control={control} name="contactMethod"
+                  render={({ field }) => (
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => field.onChange('meet')}
+                        className={cn(
+                          'flex-1 py-3 font-mono text-[11px] uppercase tracking-widest border transition-all duration-200',
+                          field.value === 'meet'
+                            ? 'border-red/60 bg-red/[0.08] text-paper'
+                            : 'border-white/10 text-paper-soft/50 hover:border-white/20'
+                        )}
+                      >
+                        Sim, quero
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => field.onChange('mensagem')}
+                        className={cn(
+                          'flex-1 py-3 font-mono text-[11px] uppercase tracking-widest border transition-all duration-200',
+                          field.value === 'mensagem'
+                            ? 'border-red/60 bg-red/[0.08] text-paper'
+                            : 'border-white/10 text-paper-soft/50 hover:border-white/20'
+                        )}
+                      >
+                        Não, só mensagem
+                      </button>
+                    </div>
+                  )}
+                />
+
+                {/* Calendário — só aparece se escolheu videochamada */}
+                {contactMethod === 'meet' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35 }}
+                    className="flex flex-col gap-5 border-t border-white/[0.06] pt-5"
+                  >
+                    <div className="flex flex-col gap-2">
+                      <Label>Data da reunião *</Label>
+                      <Controller control={control} name="meetDate"
+                        render={({ field }) => (
+                          <input
+                            type="date"
+                            min={getMinDate()}
+                            value={field.value ?? ''}
+                            onChange={field.onChange}
+                            className={cn(
+                              'w-full bg-transparent border-b py-3 font-sans text-base text-paper',
+                              'focus:outline-none transition-colors duration-300',
+                              '[color-scheme:dark]',
+                              errors.meetDate ? 'border-red/60' : 'border-white/15 focus:border-red'
+                            )}
+                          />
+                        )}
+                      />
+                      <FieldError message={errors.meetDate?.message} />
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                      <Label>Horário *</Label>
+                      <Controller control={control} name="meetTime"
+                        render={({ field }) => (
+                          <div className="flex flex-wrap gap-2">
+                            {TIME_SLOTS.map((t) => (
+                              <button
+                                key={t}
+                                type="button"
+                                onClick={() => field.onChange(t)}
+                                className={cn(
+                                  'px-4 py-2 font-mono text-[11px] uppercase tracking-widest border transition-all duration-200',
+                                  field.value === t
+                                    ? 'border-red/60 bg-red/[0.08] text-paper'
+                                    : 'border-white/10 text-paper-soft/50 hover:border-white/20'
+                                )}
+                              >
+                                {t}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      />
+                      <FieldError message={errors.meetTime?.message} />
+                      <p className="font-mono text-[9px] text-paper-soft/30 tracking-wide">
+                        Horário de Boa Vista–RR (UTC–4) · Seg–Sex apenas
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ── Consentimento LGPD — visível apenas na última etapa ──────────────── */}
+        {step === STEPS.length - 1 && (
+          <Controller
+            control={control}
+            name="lgpdConsent"
+            render={({ field }) => (
+              <label className="flex items-start gap-3 mt-8 cursor-pointer group">
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={!!field.value}
+                  onClick={() => field.onChange(!field.value)}
+                  className={cn(
+                    'mt-0.5 w-4 h-4 shrink-0 border transition-all duration-200 flex items-center justify-center',
+                    field.value
+                      ? 'border-red bg-red'
+                      : 'border-white/20 group-hover:border-white/40'
+                  )}
+                >
+                  {field.value && (
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none" aria-hidden="true">
+                      <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </button>
+                <span className="font-sans text-xs text-paper-soft/60 leading-relaxed">
+                  Concordo com o tratamento dos meus dados conforme a{' '}
+                  <a
+                    href="/politica-de-privacidade"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-paper-soft hover:text-paper underline underline-offset-2 transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Política de Privacidade
+                  </a>
+                  . Meus dados serão usados somente para responder ao meu contato.
+                </span>
+              </label>
+            )}
+          />
+        )}
+        {step === STEPS.length - 1 && errors.lgpdConsent && (
+          <FieldError message={errors.lgpdConsent.message} />
+        )}
 
         {/* ── Nav buttons ────────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between mt-10">
@@ -827,6 +884,25 @@ _💡 Olá, acabei de gerar meu briefing detalhado em PDF pelo seu site! Estou e
           )}
         </div>
       </form>
+
+      {/* Honeypot anti-spam: fora da tela, invisível para humanos, bots preenchem */}
+      <input
+        ref={honeypotRef}
+        type="text"
+        name="website"
+        aria-hidden="true"
+        tabIndex={-1}
+        autoComplete="off"
+        style={{
+          position: 'absolute',
+          left: '-9999px',
+          top: 0,
+          opacity: 0,
+          height: 0,
+          width: 0,
+          pointerEvents: 'none',
+        }}
+      />
 
       {/* Hidden PDF Template for html2canvas to read */}
       <div style={{ overflow: 'hidden', height: 0 }}>

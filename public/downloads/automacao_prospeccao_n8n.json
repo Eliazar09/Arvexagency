@@ -1,0 +1,341 @@
+{
+  "name": "Automação n8n - Prospecção de Clientes via WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 🚀 Automação de Prospecção de Clientes (n8n)\n\nEste fluxo busca empresas de um nicho/cidade, valida quais têm WhatsApp ativo e dispara uma mensagem de primeiro contato — tudo automaticamente.\n\n**O que ele faz, passo a passo:**\n1. Busca empresas no Google Maps (por nicho + cidade)\n2. Limpa e organiza os dados (telefone, site, nota, etc.)\n3. Separa quem JÁ tem site de quem NÃO tem\n4. Valida se o número tem WhatsApp\n5. Envia a primeira mensagem\n6. Espera um tempo aleatório entre envios (anti-bloqueio)\n7. Registra tudo num log\n\n👉 Antes de rodar, preencha os campos marcados com `>>> CONFIGURAR <<<` nos nós.",
+        "height": 460,
+        "width": 420,
+        "color": 4
+      },
+      "id": "note-intro",
+      "name": "Leia Primeiro",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-360, 200]
+    },
+    {
+      "parameters": {},
+      "id": "node-trigger",
+      "name": "Iniciar Prospecção",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [100, 400]
+    },
+    {
+      "parameters": {
+        "content": "### ⚙️ Configurações\n\nDefina aqui quantos leads quer buscar por execução.\n\nDica: comece com poucos (10–15) pra testar antes de escalar.",
+        "height": 200,
+        "width": 240,
+        "color": 5
+      },
+      "id": "note-config",
+      "name": "Nota - Config",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [280, 170]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "var-1",
+              "name": "max_leads",
+              "value": 15,
+              "type": "number"
+            },
+            {
+              "id": "var-2",
+              "name": "nicho",
+              "value": "joalherias",
+              "type": "string"
+            },
+            {
+              "id": "var-3",
+              "name": "cidade",
+              "value": "São Paulo, SP, Brasil",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-config",
+      "name": "Configurações",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [320, 400]
+    },
+    {
+      "parameters": {
+        "content": "### 🔎 Buscar Empresas (Google Maps)\n\n>>> CONFIGURAR <<<\n\nEste nó usa um serviço de scraping do Google Maps para listar empresas.\n\n**Você precisa:**\n- Criar uma conta num serviço de scraping de Google Places\n- Pegar a URL do endpoint e o seu TOKEN\n- Colar nos campos `URL_DO_SERVICO_DE_SCRAPING` e `SEU_TOKEN_AQUI`\n\nO retorno esperado é uma lista de lugares com nome, telefone, site, nota, etc.",
+        "height": 280,
+        "width": 280,
+        "color": 3
+      },
+      "id": "note-busca",
+      "name": "Nota - Busca",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [520, 90]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "URL_DO_SERVICO_DE_SCRAPING",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "SEU_TOKEN_AQUI"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"searchStringsArray\": [\"{{ $('Configurações').item.json.nicho }}\"],\n  \"locationQuery\": \"{{ $('Configurações').item.json.cidade }}\",\n  \"maxCrawledPlacesPerSearch\": {{ $('Configurações').item.json.max_leads }},\n  \"language\": \"pt\",\n  \"countryCode\": \"br\",\n  \"skipClosedPlaces\": true,\n  \"scrapePlaceDetailPage\": false,\n  \"maxImages\": 0,\n  \"maxReviews\": 0\n}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "node-busca",
+      "name": "Buscar Empresas no Maps",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [540, 400]
+    },
+    {
+      "parameters": {
+        "content": "### 🧹 Normalizar Dados\n\nLimpa e padroniza os telefones (formato brasileiro), remove duplicados e organiza os campos que vão ser usados depois.\n\nNão precisa mexer aqui — só entender que é aqui que os dados ficam \"prontos pra uso\".",
+        "height": 230,
+        "width": 260,
+        "color": 6
+      },
+      "id": "note-normalizar",
+      "name": "Nota - Normalizar",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [740, 130]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normaliza e deduplica os leads (telefone no padrão brasileiro)\nconst items = $input.all();\nconst seen = new Set();\nconst result = [];\n\nfor (const item of items) {\n  const data = item.json;\n\n  let telefone = data.phoneUnformatted || data.phone || '';\n  if (!telefone) continue;\n\n  // Tira tudo que não é número\n  telefone = String(telefone).replace(/[^0-9]/g, '');\n\n  // Remove +55 se já tiver (adicionamos de novo no final)\n  if (telefone.startsWith('55') && telefone.length > 11) {\n    telefone = telefone.substring(2);\n  }\n\n  // Remove o zero do DDD se houver\n  if (telefone.startsWith('0')) {\n    telefone = telefone.substring(1);\n  }\n\n  // Brasil: celular = 11 dígitos (DDD + 9 + 8) | fixo = 10 dígitos (DDD + 8)\n  if (telefone.length === 10) {\n    telefone = '55' + telefone; // fixo\n  } else if (telefone.length === 11) {\n    telefone = '55' + telefone; // celular\n  } else {\n    continue; // formato inválido\n  }\n\n  // Resultado: 55 + DDD + número = 12 ou 13 dígitos\n  if (telefone.length < 12 || telefone.length > 13) continue;\n  if (seen.has(telefone)) continue;\n  seen.add(telefone);\n\n  const nome = data.title || data.name || '';\n  const nomeCurto = nome.split(/[-|,]/)[0].trim();\n\n  result.push({\n    json: {\n      nome_completo: nome,\n      nome_curto: nomeCurto,\n      telefone: telefone,\n      website: data.website || '',\n      tem_site: !!(data.website && data.website.length > 5),\n      endereco: data.address || '',\n      cidade: data.city || '',\n      categoria: data.categoryName || '',\n      rating: data.totalScore || 0,\n      reviews: data.reviewsCount || 0,\n      google_url: data.url || ''\n    }\n  });\n}\n\nreturn result;"
+      },
+      "id": "node-normalizar",
+      "name": "Normalizar Dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 400]
+    },
+    {
+      "parameters": {
+        "content": "### 🔀 Tem site ou não?\n\nSepara os leads em dois caminhos:\n\n• **Não tem site** → segue pro contato via WhatsApp\n• **Já tem site** → vai pro log (pra oferecer um redesign depois)",
+        "height": 220,
+        "width": 250,
+        "color": 7
+      },
+      "id": "note-if",
+      "name": "Nota - IF",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [960, 140]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.tem_site }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if",
+      "name": "Não tem site?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [980, 400]
+    },
+    {
+      "parameters": {
+        "content": "### ✅ Validar WhatsApp\n\n>>> CONFIGURAR <<<\n\nUsa uma API de WhatsApp (ex: Evolution API) para checar se o número realmente tem WhatsApp ativo.\n\n**Você precisa:**\n- Subir/contratar uma instância de API de WhatsApp\n- Trocar `URL_DA_SUA_API_WHATSAPP` e o nome da instância (`SUA_INSTANCIA`)\n- Configurar a credencial de autenticação (Header Auth) no n8n com a sua API Key",
+        "height": 280,
+        "width": 280,
+        "color": 3
+      },
+      "id": "note-valida",
+      "name": "Nota - Valida WhatsApp",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1180, 30]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "URL_DA_SUA_API_WHATSAPP/chat/whatsappNumbers/SUA_INSTANCIA",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"numbers\": [\"{{ $json.telefone }}\"]\n}",
+        "options": {}
+      },
+      "id": "node-valida-wpp",
+      "name": "Validar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Mantém só os leads que realmente têm WhatsApp ativo\nconst items = $input.all();\nconst result = [];\nconst leadsOriginais = $('Normalizar Dados').all();\n\nfor (const item of items) {\n  const validacao = item.json;\n\n  if (Array.isArray(validacao)) {\n    for (const numero of validacao) {\n      const temWhatsapp = numero.exists === true;\n\n      if (temWhatsapp) {\n        const telefoneValidado = String(numero.number || '').replace(/[^0-9]/g, '');\n\n        const leadOriginal = leadsOriginais.find(\n          l => String(l.json.telefone).replace(/[^0-9]/g, '') === telefoneValidado\n        );\n\n        if (leadOriginal) {\n          result.push({\n            json: {\n              ...leadOriginal.json,\n              whatsapp_validado: true,\n              jid: numero.jid\n            }\n          });\n        }\n      }\n    }\n  }\n}\n\nreturn result;"
+      },
+      "id": "node-filtra",
+      "name": "Filtrar quem tem WhatsApp",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1420, 300]
+    },
+    {
+      "parameters": {
+        "content": "### 💬 Enviar Mensagem\n\n>>> CONFIGURAR <<<\n\nEnvia a primeira mensagem de prospecção.\n\n**Você precisa:**\n- Trocar `URL_DA_SUA_API_WHATSAPP` e `SUA_INSTANCIA`\n- Usar a mesma credencial de Header Auth do nó anterior\n\n✏️ Personalize o texto da mensagem para o seu serviço/nicho. A daqui é só um exemplo.",
+        "height": 280,
+        "width": 280,
+        "color": 3
+      },
+      "id": "note-enviar",
+      "name": "Nota - Enviar",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1620, 20]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "URL_DA_SUA_API_WHATSAPP/message/sendText/SUA_INSTANCIA",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $json.telefone }}\",\n  \"text\": \"Bom dia! Tudo bem? 👋\\n\\nVi sua joalheria e achei linda a apresentação das peças.\\nHoje muitos clientes pedem orçamento pelo WhatsApp e acabam não recebendo resposta rápida… vocês passam por isso também?\\n\\nEstou ajudando joalherias a automatizar esse atendimento com um sistema que envia catálogo + orçamento em PDF automaticamente, 24h por dia.\\n\\nSe fizer sentido, posso te mostrar rapidinho como funciona 😊\",\n  \"delay\": 1500\n}",
+        "options": {}
+      },
+      "id": "node-enviar",
+      "name": "Enviar Mensagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1640, 300]
+    },
+    {
+      "parameters": {
+        "content": "### ⏳ Espera Anti-Bloqueio\n\nEspera um tempo aleatório (60 a 150s) entre cada envio.\n\nIsso imita o comportamento humano e reduz muito o risco de bloqueio do número no WhatsApp.",
+        "height": 210,
+        "width": 250,
+        "color": 5
+      },
+      "id": "note-wait",
+      "name": "Nota - Wait",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1840, 40]
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 91) + 60 }}",
+        "unit": "seconds"
+      },
+      "id": "node-wait",
+      "name": "Espera 60-150s (Anti-Bloqueio)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1860, 300],
+      "webhookId": "wait-anti-bloqueio"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Registro dos envios realizados\nreturn [{\n  json: {\n    data: new Date().toISOString(),\n    nome: $json.nome_completo || $json.nome_curto,\n    telefone: $json.telefone,\n    cidade: $json.cidade,\n    categoria: $json.categoria,\n    rating: $json.rating,\n    google_url: $json.google_url,\n    status: 'mensagem_enviada'\n  }\n}];"
+      },
+      "id": "node-log",
+      "name": "Log de Envios",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2080, 300]
+    },
+    {
+      "parameters": {
+        "content": "### 📋 Log - Tem Site\n\nGuarda os leads que JÁ possuem site.\n\nLista perfeita para uma segunda campanha oferecendo redesign / site novo.",
+        "height": 200,
+        "width": 250,
+        "color": 6
+      },
+      "id": "note-log-site",
+      "name": "Nota - Log Site",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1180, 560]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Registro dos leads que já têm site (oportunidade de redesign)\nreturn [{\n  json: {\n    data: new Date().toISOString(),\n    nome: $json.nome_completo,\n    telefone: $json.telefone,\n    website: $json.website,\n    cidade: $json.cidade,\n    rating: $json.rating,\n    google_url: $json.google_url,\n    status: 'tem_site_oferecer_redesign'\n  }\n}];"
+      },
+      "id": "node-log-site",
+      "name": "Log - Tem Site",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 500]
+    }
+  ],
+  "connections": {
+    "Iniciar Prospecção": {
+      "main": [[{"node": "Configurações", "type": "main", "index": 0}]]
+    },
+    "Configurações": {
+      "main": [[{"node": "Buscar Empresas no Maps", "type": "main", "index": 0}]]
+    },
+    "Buscar Empresas no Maps": {
+      "main": [[{"node": "Normalizar Dados", "type": "main", "index": 0}]]
+    },
+    "Normalizar Dados": {
+      "main": [[{"node": "Não tem site?", "type": "main", "index": 0}]]
+    },
+    "Não tem site?": {
+      "main": [
+        [{"node": "Validar WhatsApp", "type": "main", "index": 0}],
+        [{"node": "Log - Tem Site", "type": "main", "index": 0}]
+      ]
+    },
+    "Validar WhatsApp": {
+      "main": [[{"node": "Filtrar quem tem WhatsApp", "type": "main", "index": 0}]]
+    },
+    "Filtrar quem tem WhatsApp": {
+      "main": [[{"node": "Enviar Mensagem", "type": "main", "index": 0}]]
+    },
+    "Enviar Mensagem": {
+      "main": [[{"node": "Espera 60-150s (Anti-Bloqueio)", "type": "main", "index": 0}]]
+    },
+    "Espera 60-150s (Anti-Bloqueio)": {
+      "main": [[{"node": "Log de Envios", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "tags": []
+}

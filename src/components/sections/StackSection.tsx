@@ -56,7 +56,6 @@ function RotatingRing({
   useEffect(() => {
     if (!ringRef.current) return;
 
-    // Rotate the entire ring
     const ringTween = gsap.to(ringRef.current, {
       rotation: reverse ? -360 : 360,
       duration,
@@ -64,7 +63,6 @@ function RotatingRing({
       repeat: -1,
     });
 
-    // Counter-rotate each card to keep them upright
     const cardTweens = cardRefs.current
       .filter(Boolean)
       .map((card) =>
@@ -97,7 +95,7 @@ function RotatingRing({
     >
       {items.map((item, i) => {
         const angle = ((360 / items.length) * i - 90) * (Math.PI / 180);
-        const cardSize = 56; // w-14 = 56px
+        const cardSize = 56;
         const halfCard = cardSize / 2;
         const x = Math.cos(angle) * radius + radius - halfCard;
         const y = Math.sin(angle) * radius + radius - halfCard;
@@ -269,9 +267,9 @@ function TechCounter() {
 function CategoryLabels() {
   const categories = [
     { name: 'Frontend', position: 'top-4 left-4 md:top-8 md:left-8' },
-    { name: 'Backend', position: 'top-4 right-4 md:top-8 md:right-8' },
+    { name: 'Backend',  position: 'top-4 right-4 md:top-8 md:right-8' },
     { name: 'Automação', position: 'bottom-4 left-4 md:bottom-8 md:left-8' },
-    { name: 'Design', position: 'bottom-4 right-4 md:bottom-8 md:right-8' },
+    { name: 'Design',   position: 'bottom-4 right-4 md:bottom-8 md:right-8' },
   ];
 
   return (
@@ -363,7 +361,6 @@ export function StackSection() {
           <Particles />
           <CenterCore />
 
-          {/* GSAP-powered rotating rings */}
           <RotatingRing items={ring0} radius={isMobile ? 70 : 140} duration={25} />
           <RotatingRing items={ring1} radius={isMobile ? 120 : 240} duration={35} reverse />
           <RotatingRing items={ring2} radius={isMobile ? 160 : 320} duration={45} />

@@ -5,7 +5,7 @@ import { MagneticLink } from '@/components/primitives/MagneticLink';
 
 export const metadata: Metadata = {
   title: 'Sobre',
-  description: 'Conheça a Arvex BR — boutique de tecnologia e criação baseada em Boa Vista, RR. Nossa história, princípios e as pessoas por trás do trabalho.',
+  description: 'Conheça a Arvex BR — creative studio de tecnologia baseado em Boa Vista, RR. Nossa história, princípios e as pessoas por trás do trabalho.',
 };
 
 const principles = [
@@ -51,7 +51,7 @@ export default function SobrePage() {
           </Reveal>
           <Reveal delay={0.1}>
             <h1 className="font-display font-light leading-tight" style={{ fontSize: 'var(--fs-h1)' }}>
-              Uma boutique.
+              One Studio.
               <br />
               <em className="italic text-paper-dim">Seis disciplinas.</em>
             </h1>
@@ -76,7 +76,7 @@ export default function SobrePage() {
               </Reveal>
               <Reveal delay={0.15}>
                 <p className="font-sans text-paper-dim leading-relaxed mb-6" style={{ fontSize: 'var(--fs-lead)' }}>
-                  Não somos uma agência de 50 pessoas com contas gigantes e processo engessado. Somos uma boutique — pequena por escolha, meticulosa por princípio. Cada projeto passa por um time reduzido que conhece profundamente o seu negócio.
+                  Não somos uma agência de 50 pessoas com contas gigantes e processo engessado. Somos um studio — pequeno por escolha, meticuloso por princípio. Cada projeto passa por um time reduzido que conhece profundamente o seu negócio.
                 </p>
               </Reveal>
               <Reveal delay={0.2}>

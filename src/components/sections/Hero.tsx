@@ -7,10 +7,17 @@ import { motion } from 'motion/react';
 import { ArrowRight } from 'lucide-react';
 import { MagneticLink } from '@/components/primitives/MagneticLink';
 
-const LineWaves = dynamic(() => import('@/components/LineWaves'), {
-  ssr: false,
-  loading: () => null,
-});
+// Carrega WebGL só em telas >= 768px — em mobile consome bateria e pode falhar
+const isMobileDevice = () =>
+  typeof window !== 'undefined' && window.innerWidth < 768;
+
+const LineWaves = dynamic(
+  () =>
+    isMobileDevice()
+      ? Promise.resolve({ default: () => null })
+      : import('@/components/LineWaves'),
+  { ssr: false, loading: () => null }
+);
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
@@ -46,8 +53,17 @@ export function Hero() {
       className="relative min-h-[100dvh] flex flex-col justify-center items-center overflow-hidden bg-ink"
       aria-label="Seção principal"
     >
-      {/* LineWaves — fundo WebGL */}
+      {/* Fundo: WebGL em desktop, gradiente estático em mobile */}
       <div aria-hidden="true" className="absolute inset-0 z-0">
+        {/* Gradiente fallback (sempre visível em mobile, oculto atrás do WebGL no desktop) */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 80% 60% at 50% 100%, rgb(197 39 50 / 0.18) 0%, transparent 70%), radial-gradient(ellipse 100% 80% at 50% -10%, rgb(197 39 50 / 0.08) 0%, transparent 60%)',
+          }}
+        />
+        {/* LineWaves WebGL — carrega apenas em desktop via dynamic import */}
         <LineWaves
           speed={0.3}
           innerLineCount={32}
